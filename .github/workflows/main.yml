@@ -1,0 +1,40 @@
+name: Gerar APK e AAB Oficial - OrganSense
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Baixar Codigo do Repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Configurar Java 17 (v5)
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: 3. Instalar Flutter SDK Estavel
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: 4. Gerar Estrutura Android API 35 e Compilar APK + AAB
+        run: |
+          flutter create --platforms=android --org br.com.organsense --project-name organsense_lims .
+          sed -i 's/<application/<uses-permission android:name="android.permission.INTERNET"\/><application android:usesCleartextTraffic="true"/g' android/app/src/main/AndroidManifest.xml
+          flutter pub get
+          flutter build apk --release
+          flutter build appbundle --release
+
+      - name: 5. Disponibilizar APK (Celular) e AAB (Play Store) para Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Instaladores-Android-OrganSense
+          path: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
